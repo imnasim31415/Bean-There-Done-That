@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <title th:text="'Bean: ' + ${bean.beanName}">Bean Detail</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f0f0f; color: #e0e0e0; }
+        header { background: #1a1a2e; padding: 1rem 2rem; border-bottom: 2px solid #6c63ff; }
+        header h1 { font-size: 1.4rem; color: #a78bfa; }
+        nav { background: #16213e; padding: 0.6rem 2rem; display: flex; gap: 1.5rem; border-bottom: 1px solid #222; }
+        nav a { color: #94a3b8; text-decoration: none; font-size: 0.9rem; padding: 0.3rem 0; }
+        nav a:hover { color: #a78bfa; border-bottom: 2px solid #a78bfa; }
+        main { padding: 2rem; max-width: 900px; margin: 0 auto; }
+        .meta { background: #1e1e2e; border: 1px solid #333; border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem; }
+        .meta h2 { font-family: monospace; color: #a78bfa; font-size: 1.2rem; margin-bottom: 0.8rem; }
+        .meta-row { display: flex; gap: 1rem; margin-bottom: 0.4rem; font-size: 0.88rem; }
+        .meta-key { color: #666; min-width: 140px; }
+        .meta-val { font-family: monospace; color: #ccc; }
+        .deps-wrap { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+        .dep-tag { font-size: 0.78rem; background: #2d2b55; color: #c4b5fd; padding: 0.2rem 0.6rem; border-radius: 999px; }
+        h3 { color: #a78bfa; margin-bottom: 1rem; font-size: 1rem; font-weight: 500; }
+        .timeline { position: relative; padding-left: 2rem; }
+        .timeline::before { content: ''; position: absolute; left: 6px; top: 0; bottom: 0; width: 2px; background: #333; }
+        .event { position: relative; margin-bottom: 1.2rem; }
+        .event::before { content: ''; position: absolute; left: -1.6rem; top: 0.3rem; width: 10px; height: 10px; border-radius: 50%; background: #6c63ff; border: 2px solid #a78bfa; }
+        .stage { font-size: 0.72rem; font-family: monospace; padding: 0.1rem 0.5rem; border-radius: 3px; }
+        .INSTANTIATED        { background: #1e3a2e; color: #34d399; }
+        .DEPENDENCIES_INJECTED { background: #1e2a3a; color: #60a5fa; }
+        .POST_CONSTRUCT      { background: #2d2b55; color: #a78bfa; }
+        .INITIALIZED         { background: #1a2e1a; color: #86efac; }
+        .PRE_DESTROY         { background: #3a1a1a; color: #f87171; }
+        .event-detail { font-size: 0.85rem; color: #ccc; margin-top: 0.2rem; }
+        .event-time { font-size: 0.75rem; color: #555; font-family: monospace; }
+        .back { display: inline-block; margin-bottom: 1.5rem; color: #a78bfa; text-decoration: none; font-size: 0.88rem; }
+        .back:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+<header><h1>☕ Bean There Done That</h1></header>
+<nav>
+    <a href="/dashboard">Dashboard</a>
+    <a href="/dashboard/beans">Beans</a>
+    <a href="/dashboard/lifecycle">Lifecycle</a>
+</nav>
+<main>
+    <a class="back" href="/dashboard/beans">← Back to Bean Registry</a>
+    <div class="meta">
+        <h2 th:text="${bean.beanName}"></h2>
+        <div class="meta-row"><span class="meta-key">Full class:</span><span class="meta-val" th:text="${bean.className}"></span></div>
+        <div class="meta-row"><span class="meta-key">Scope:</span><span class="meta-val" th:text="${bean.scope}"></span></div>
+        <div class="meta-row">
+            <span class="meta-key">Dependencies:</span>
+            <span class="meta-val" th:if="${#lists.isEmpty(bean.dependencies)}">none</span>
+        </div>
+        <div class="deps-wrap" th:unless="${#lists.isEmpty(bean.dependencies)}">
+            <span class="dep-tag" th:each="dep : ${bean.dependencies}" th:text="${dep}"></span>
+        </div>
+    </div>
+
+    <h3>Lifecycle Events</h3>
+    <div class="timeline">
+        <div class="event" th:each="evt : ${bean.events}">
+            <span class="stage" th:classappend="${evt.stage}" th:text="${evt.stage}"></span>
+            <div class="event-detail" th:text="${evt.detail}"></div>
+            <div class="event-time" th:text="${evt.timestamp}"></div>
+        </div>
+        <div th:if="${#lists.isEmpty(bean.events)}" style="color:#555;font-size:0.88rem;">No events captured.</div>
+    </div>
+</main>
+</body>
+</html>

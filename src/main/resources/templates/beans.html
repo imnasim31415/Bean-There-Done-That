@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Bean Registry</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f0f0f; color: #e0e0e0; }
+        header { background: #1a1a2e; padding: 1rem 2rem; border-bottom: 2px solid #6c63ff; }
+        header h1 { font-size: 1.4rem; color: #a78bfa; }
+        nav { background: #16213e; padding: 0.6rem 2rem; display: flex; gap: 1.5rem; border-bottom: 1px solid #222; }
+        nav a { color: #94a3b8; text-decoration: none; font-size: 0.9rem; padding: 0.3rem 0; }
+        nav a:hover, nav a.active { color: #a78bfa; border-bottom: 2px solid #a78bfa; }
+        main { padding: 2rem; max-width: 1200px; margin: 0 auto; }
+        h2 { color: #a78bfa; margin-bottom: 1rem; font-size: 1.1rem; font-weight: 500; }
+        input[type=text] { background: #1e1e2e; border: 1px solid #333; color: #e0e0e0; padding: 0.5rem 1rem; border-radius: 6px; width: 100%; max-width: 400px; margin-bottom: 1.5rem; font-size: 0.9rem; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+        th { background: #1a1a2e; color: #a78bfa; padding: 0.7rem 1rem; text-align: left; border-bottom: 2px solid #333; }
+        td { padding: 0.65rem 1rem; border-bottom: 1px solid #222; vertical-align: top; }
+        tr:hover td { background: #1a1a2e; }
+        .scope-singleton { color: #34d399; }
+        .scope-prototype { color: #f59e0b; }
+        .scope-other     { color: #94a3b8; }
+        .bean-name { font-family: monospace; color: #a78bfa; }
+        .class-name { font-family: monospace; font-size: 0.8rem; color: #888; }
+        .deps { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+        .dep-tag { font-size: 0.75rem; background: #2d2b55; color: #c4b5fd; padding: 0.15rem 0.5rem; border-radius: 999px; }
+        .detail-link { color: #a78bfa; text-decoration: none; font-size: 0.8rem; }
+        .detail-link:hover { text-decoration: underline; }
+        #graph-section { margin-top: 2.5rem; }
+        #graph-container { background: #1e1e2e; border: 1px solid #333; border-radius: 8px; padding: 1rem; overflow-x: auto; }
+        svg text { fill: #e0e0e0; font-family: monospace; font-size: 11px; }
+    </style>
+</head>
+<body>
+<header><h1>☕ Bean There Done That</h1></header>
+<nav>
+    <a href="/dashboard">Dashboard</a>
+    <a href="/dashboard/beans" class="active">Beans</a>
+    <a href="/dashboard/lifecycle">Lifecycle</a>
+    <a href="/debug/beans" target="_blank">API: /debug/beans</a>
+    <a href="/scope/demo" target="_blank">Scope Demo</a>
+</nav>
+<main>
+    <h2>Bean Registry (<span id="count">0</span> beans)</h2>
+    <input type="text" id="filter" placeholder="Filter by name or class…" oninput="filterTable()"/>
+    <table id="beanTable">
+        <thead>
+        <tr>
+            <th>Bean Name</th>
+            <th>Class</th>
+            <th>Scope</th>
+            <th>Dependencies</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="b : ${beans}" th:data-name="${b.id}" th:data-class="${b.className}">
+            <td class="bean-name" th:text="${b.id}"></td>
+            <td class="class-name" th:text="${b.className}"></td>
+            <td>
+                <span th:classappend="'scope-' + ${b.scope}" th:text="${b.scope}"></span>
+            </td>
+            <td>
+                <div class="deps">
+                    <span th:each="dep : ${b.dependsOn}" class="dep-tag" th:text="${dep}"></span>
+                    <span th:if="${#lists.isEmpty(b.dependsOn)}" style="color:#555;font-size:0.8rem;">—</span>
+                </div>
+            </td>
+            <td><a class="detail-link" th:href="@{/dashboard/beans/{n}(n=${b.id})}">detail →</a></td>
+        </tr>
+        </tbody>
+    </table>
+
+    <div id="graph-section">
+        <h2 style="margin-bottom:1rem;">Dependency Graph</h2>
+        <div id="graph-container">
+            <svg id="depGraph" width="900" height="500"></svg>
+        </div>
+    </div>
+</main>
+
+<script th:inline="javascript">
+    // Inline bean data from server
+    const beans = /*[[${beans}]]*/ [];
+
+    document.getElementById('count').textContent = beans.length;
+
+    function filterTable() {
+        const q = document.getElementById('filter').value.toLowerCase();
+        document.querySelectorAll('#beanTable tbody tr').forEach(row => {
+            const name = row.dataset.name || '';
+            const cls  = row.dataset.class || '';
+            row.style.display = (name.toLowerCase().includes(q) || cls.toLowerCase().includes(q)) ? '' : 'none';
+        });
+    }
+
+    // Simple force-directed graph using SVG + basic simulation
+    (function drawGraph() {
+        const svg = document.getElementById('depGraph');
+        const W = 900, H = 500;
+        svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+        if (!beans || beans.length === 0) return;
+
+        const nodes = beans.map((b, i) => ({
+            id: b.id, label: b.label, scope: b.scope,
+            x: 100 + (i % 6) * 130, y: 80 + Math.floor(i / 6) * 100
+        }));
+
+        const nodeMap = Object.fromEntries(nodes.map(n => [n.id, n]));
+        const edges = [];
+        beans.forEach(b => {
+            (b.dependsOn || []).forEach(dep => {
+                const target = nodes.find(n => n.label === dep || n.id === dep);
+                if (target) edges.push({ from: nodeMap[b.id], to: target });
+            });
+        });
+
+        // Draw arrows
+        const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+        const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+        marker.setAttribute('id', 'arrow'); marker.setAttribute('markerWidth', '8');
+        marker.setAttribute('markerHeight', '6'); marker.setAttribute('refX', '8');
+        marker.setAttribute('refY', '3'); marker.setAttribute('orient', 'auto');
+        const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        poly.setAttribute('points', '0 0, 8 3, 0 6'); poly.setAttribute('fill', '#6c63ff');
+        marker.appendChild(poly); defs.appendChild(marker); svg.appendChild(defs);
+
+        edges.forEach(e => {
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', e.from.x); line.setAttribute('y1', e.from.y);
+            line.setAttribute('x2', e.to.x); line.setAttribute('y2', e.to.y);
+            line.setAttribute('stroke', '#6c63ff'); line.setAttribute('stroke-width', '1.5');
+            line.setAttribute('marker-end', 'url(#arrow)'); svg.appendChild(line);
+        });
+
+        nodes.forEach(n => {
+            const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            const lw = Math.max(n.label.length * 7, 80);
+            rect.setAttribute('x', n.x - lw/2); rect.setAttribute('y', n.y - 18);
+            rect.setAttribute('width', lw); rect.setAttribute('height', 34);
+            rect.setAttribute('rx', '6');
+            rect.setAttribute('fill', n.scope === 'prototype' ? '#451a03' : '#1e1e3a');
+            rect.setAttribute('stroke', n.scope === 'prototype' ? '#f59e0b' : '#6c63ff');
+            rect.setAttribute('stroke-width', '1.5');
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', n.x); text.setAttribute('y', n.y + 5);
+            text.setAttribute('text-anchor', 'middle'); text.setAttribute('fill', '#e0e0e0');
+            text.textContent = n.label;
+            g.appendChild(rect); g.appendChild(text);
+            svg.appendChild(g);
+        });
+    })();
+</script>
+</body>
+</html>

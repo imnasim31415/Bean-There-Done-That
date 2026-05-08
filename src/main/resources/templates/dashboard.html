@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Bean There Done That — Dashboard</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f0f0f; color: #e0e0e0; }
+        header { background: #1a1a2e; padding: 1rem 2rem; border-bottom: 2px solid #6c63ff; display: flex; align-items: center; gap: 1rem; }
+        header h1 { font-size: 1.4rem; color: #a78bfa; }
+        header span { font-size: 0.85rem; color: #666; }
+        nav { background: #16213e; padding: 0.6rem 2rem; display: flex; gap: 1.5rem; border-bottom: 1px solid #222; }
+        nav a { color: #94a3b8; text-decoration: none; font-size: 0.9rem; padding: 0.3rem 0; }
+        nav a:hover, nav a.active { color: #a78bfa; border-bottom: 2px solid #a78bfa; }
+        main { padding: 2rem; max-width: 1200px; margin: 0 auto; }
+        h2 { color: #a78bfa; margin-bottom: 1.5rem; font-size: 1.2rem; font-weight: 500; }
+        .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .card { background: #1e1e2e; border: 1px solid #333; border-radius: 8px; padding: 1.5rem; }
+        .card .num { font-size: 2.5rem; font-weight: 700; color: #a78bfa; }
+        .card .label { font-size: 0.85rem; color: #888; margin-top: 0.3rem; }
+        .links { display: flex; flex-direction: column; gap: 0.75rem; }
+        .link-card { background: #1e1e2e; border: 1px solid #333; border-radius: 8px; padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; text-decoration: none; color: #e0e0e0; transition: border-color 0.2s; }
+        .link-card:hover { border-color: #a78bfa; }
+        .link-card .title { font-weight: 500; }
+        .link-card .desc { font-size: 0.82rem; color: #888; }
+        .arrow { color: #a78bfa; font-size: 1.2rem; }
+        .badge { font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 999px; background: #2d2b55; color: #a78bfa; }
+    </style>
+</head>
+<body>
+<header>
+    <h1>☕ Bean There Done That</h1>
+    <span>Spring DI &amp; Lifecycle Visualizer</span>
+</header>
+<nav>
+    <a href="/dashboard" class="active">Dashboard</a>
+    <a href="/dashboard/beans">Beans</a>
+    <a href="/dashboard/lifecycle">Lifecycle</a>
+    <a href="/debug/beans" target="_blank">API: /debug/beans</a>
+    <a href="/scope/demo" target="_blank">Scope Demo</a>
+</nav>
+<main>
+    <h2>Overview</h2>
+    <div class="cards">
+        <div class="card">
+            <div class="num" th:text="${totalBeans}">0</div>
+            <div class="label">Total Beans Tracked</div>
+        </div>
+        <div class="card">
+            <div class="num" th:text="${singletons}">0</div>
+            <div class="label">Singleton Beans</div>
+        </div>
+        <div class="card">
+            <div class="num" th:text="${prototypes}">0</div>
+            <div class="label">Prototype Beans</div>
+        </div>
+        <div class="card">
+            <div class="num" th:text="${startupPhases}">0</div>
+            <div class="label">Startup Phases Captured</div>
+        </div>
+    </div>
+
+    <h2>Explore</h2>
+    <div class="links">
+        <a class="link-card" href="/dashboard/beans">
+            <div>
+                <div class="title">Bean Registry <span class="badge">UI</span></div>
+                <div class="desc">Browse all tracked beans, scopes, and dependency edges</div>
+            </div>
+            <span class="arrow">→</span>
+        </a>
+        <a class="link-card" href="/dashboard/lifecycle">
+            <div>
+                <div class="title">Lifecycle Timeline <span class="badge">UI</span></div>
+                <div class="desc">Startup phases + per-bean lifecycle events with timestamps</div>
+            </div>
+            <span class="arrow">→</span>
+        </a>
+        <a class="link-card" href="/debug/beans" target="_blank">
+            <div>
+                <div class="title">GET /debug/beans <span class="badge">JSON</span></div>
+                <div class="desc">Full dependency graph as JSON — paste into visualization tools</div>
+            </div>
+            <span class="arrow">↗</span>
+        </a>
+        <a class="link-card" href="/debug/startup" target="_blank">
+            <div>
+                <div class="title">GET /debug/startup <span class="badge">JSON</span></div>
+                <div class="desc">Application startup phase timeline</div>
+            </div>
+            <span class="arrow">↗</span>
+        </a>
+        <a class="link-card" href="/scope/demo" target="_blank">
+            <div>
+                <div class="title">GET /scope/demo <span class="badge">JSON</span></div>
+                <div class="desc">Live singleton vs prototype vs request scope comparison</div>
+            </div>
+            <span class="arrow">↗</span>
+        </a>
+        <a class="link-card" href="/debug/circular" target="_blank">
+            <div>
+                <div class="title">GET /debug/circular <span class="badge">JSON</span></div>
+                <div class="desc">Potential circular dependency hints</div>
+            </div>
+            <span class="arrow">↗</span>
+        </a>
+    </div>
+</main>
+</body>
+</html>
